@@ -102,7 +102,7 @@ let r_motor = 0
 let pitch = 0
 let roll = 0
 let radio_group : int8 = 4
-let base_speed = 60
+let base_speed = 80
 radio.setGroup(radio_group)
 basic.showNumber(radio_group)
 input.onLogoDown(function on_logo_down() {
@@ -127,7 +127,7 @@ basic.forever(function () {
 
 
     let sm : number = 1;
-    if (input.buttonIsPressed(Button.A)) sm = 2;
+    if (input.buttonIsPressed(Button.A)) sm = 0.4;
 
     let [l_motor, r_motor] = calculate_motor_speed()
     l_motor *= base_speed
