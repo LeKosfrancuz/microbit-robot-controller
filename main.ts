@@ -7,6 +7,13 @@ function sub_tolerance (pivot: number, tolerance: number) {
     }
     return 0
 }
+
+function map(x: number, in_min: number, in_max: number, out_min: number, out_max: number) : number {
+    if (x < in_min) return out_min;
+    if (x > in_max) return out_max;
+    
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 function calculate_motor_speed () {
     pitch = input.rotation(Rotation.Pitch)
     roll = input.rotation(Rotation.Roll)
@@ -32,16 +39,14 @@ function calculate_motor_speed () {
     if (a_pitch - a_roll < almost_zero_deg_tolerance && a_pitch - a_roll > -1*almost_zero_deg_tolerance) {
         // Ako je jedan od smjerova preko tolerancije, dovoljno je za kretanje
         if (a_pitch > almost_zero_deg_tolerance || a_roll > almost_zero_deg_tolerance) {
-            pitch = sub_tolerance(pitch, almost_zero_deg_tolerance / 2)
-            roll = sub_tolerance(roll, almost_zero_deg_tolerance / 2)
             if (!forward) {
                 if (right) {
                     basic.showArrow(ArrowNames.SouthEast)
                 } else {
                     basic.showArrow(ArrowNames.SouthWest)
                 }
-                l_motor = (-1 * pitch - roll/2) / 135
-                r_motor = (-1 * pitch + roll/2) / 135
+                l_motor = map((-1 * pitch - roll/2), -90-45, 90+45, -1, 1);
+                r_motor = map((-1 * pitch + roll / 2), -90-45, 90 + 45, -1, 1);
             }
             if (forward) {
                 if (right) {
@@ -49,22 +54,22 @@ function calculate_motor_speed () {
                 } else {
                     basic.showArrow(ArrowNames.NorthWest)
                 }
-                l_motor = (-1 * pitch + roll/2) / 135
-                r_motor = (-1 * pitch - roll/2) / 135
+                l_motor = map((-1 * pitch + roll / 2), -90 - 45, 90 + 45, -1, 1);
+                r_motor = map((-1 * pitch - roll / 2), -90 - 45, 90 + 45, -1, 1);
             }
             return [l_motor, r_motor]
         }
     } else if (a_pitch > a_roll) {
         if (a_pitch > almost_zero_deg_tolerance) {
-            a_pitch -= almost_zero_deg_tolerance / 2
+            //a_pitch -= almost_zero_deg_tolerance / 2
             if (!forward) {
                 // Nagnut nazad
-                l_motor = -1 * a_pitch / 90
+                l_motor = map(-1 * a_pitch, -90, 90, -1, -1);
                 r_motor = l_motor
                 basic.showArrow(ArrowNames.South)
             } else if (forward) {
                 // Nagnut naprijed
-                l_motor = a_pitch / 90
+                l_motor = map(a_pitch, -90, 90, -1, 1);
                 r_motor = l_motor
                 basic.showArrow(ArrowNames.North)
             }
@@ -96,23 +101,25 @@ let l_motor = 0
 let r_motor = 0
 let pitch = 0
 let roll = 0
-let radio_group = 4
+let radio_group : int8 = 4
+let base_speed = 60
 radio.setGroup(radio_group)
 basic.showNumber(radio_group)
 input.onLogoDown(function on_logo_down() {
     
 })
 basic.forever(function () {
-    if (input.buttonIsPressed(Button.AB)) {
-        radio_group = (radio_group % 5) + 1;
-        radio.setGroup(radio_group)
-        basic.showNumber(radio_group)
-    }
-
     if (input.buttonIsPressed(Button.B)) {
         while (input.buttonIsPressed(Button.B)) {
             radio.sendValue("stop", 1)
             basic.showIcon(IconNames.No)
+            if (input.buttonIsPressed(Button.AB)) {
+                radio.sendValue("stop", 0)
+                radio_group = (radio_group % 5) + 1;
+                radio.setGroup(radio_group)
+                basic.showNumber(radio_group)
+                while (input.buttonIsPressed(Button.AB));
+            }
         }
         radio.sendValue("stop", 0)
         basic.clearScreen()
@@ -123,6 +130,8 @@ basic.forever(function () {
     if (input.buttonIsPressed(Button.A)) sm = 2;
 
     let [l_motor, r_motor] = calculate_motor_speed()
+    l_motor *= base_speed
+    r_motor *= base_speed
     radio.sendValue("set_lmtr", sm*l_motor);
     radio.sendValue("set_rmtr", sm*r_motor);
     console.log("Left motor: " + sm*l_motor)
